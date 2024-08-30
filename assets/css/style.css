@@ -1,0 +1,95 @@
+body {
+  height: 100%;
+  margin: 0;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB,
+    Microsoft YaHei, Arial, sans-serif;
+  overflow-y: hidden;
+}
+
+label {
+  font-weight: 700;
+}
+
+html {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.el-col {
+  border-radius: 4px;
+}
+.bg-purple-dark {
+}
+.bg-purple {
+}
+.bg-purple-light {
+}
+.grid-content {
+  border-radius: 4px;
+  min-height: 36px;
+}
+.bline {
+  border: 1px solid #cad7e3;
+  border-radius: 4px;
+}
+.seldropdown .el-input.is-focus,
+.seldropdown .el-input__inner {
+  border: 0;
+}
+.tblTit {
+  border: 1px solid #cad7e3;
+  border-bottom: 0px;
+  background-color: #e4ebf4;
+  color: #909399;
+  -webkit-transition: 0.3s;
+  transition: 0.3s;
+  font-size: 16px;
+  height: 30px;
+  line-height: 30px;
+  font-weight: bold;
+  text-indent: 10px;
+}
+.chkClass th > .cell,
+.chkClass .el-table-column--selection .cell {
+  padding-right: 0;
+}
+.chkClass .cell,
+.chkClass .el-table--border td:first-child .cell,
+.chkClass .el-table--border th:first-child .cell {
+  padding-left: 7px !important;
+}
+.seldropdown input {
+  background: #e4ebf4;
+  border-left: 1px solid #cad7e3 !important;
+  border-right: 1px solid #cad7e3 !important;
+  border-bottom: 1px solid #cad7e3 !important;
+  border-radius: 4px 4px 0 0;
+}
+.sucess1 {
+  color: #05ca05 !important;
+}
+.sucess0 {
+  color: red !important;
+}
+
+/* 默认颜色 */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+  background-color: rgb(234 239 247 / 48%);
+}
+/* 滚动条颜色 */
+::-webkit-scrollbar-thumb {
+  border-radius: 1px;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, .3);
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, .3);
+  background-color: #52778B;
+}
+/* 滚动条底色 */
+::-webkit-scrollbar-track{
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2); 
+  background: rgb(234 239 247 / 48%);
+}

@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股票筛选</title>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/vue.js"></script>
+    <link rel="stylesheet" href="assets/css/index.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!--引入表格样式-->
+    <link rel="stylesheet" href="assets/css/pl-table.css">
+    <link rel="stylesheet" href="assets/css/training.css">
+    <!--默认表格样式很丑 引入这个样式就可以好看啦-->
+    <!-- <link rel="stylesheet" href="assets/css/plTableStyle.css"> -->
+    <script src="assets/js/element-ui.js"></script>
+    <script src="assets/js/axios.min.js"></script>
+    <script src="assets/js/qs.min.js"></script>
+    <script src="assets/js/Sortable.min.js"></script>
+    <script src="assets/js/xlsx.full.min.js"></script>
+    <script src="assets/js/pl-table.js"></script>
+</head>
+
+<body>
+<div id="app">
+    <template>
+        <el-card class="box-card">
+            <el-row>
+                <div class="gp-wrapper">
+                    <div class="grid-content bg-purple"  style="overflow: auto; margin: 0 auto; width: 80%">
+                        <div class="bline bg-white pt10">
+                            <div class="ww100 clearfix pt10">
+                                <div style=" padding-left: 5px">
+                                    <div style="padding-left: 16px;">
+                                        <el-upload
+                                                class="upload-demo"
+                                                ref="uploadFile"
+                                                :action="uploadFileUrl"
+                                                :multiple="false"
+                                                :show-file-list="false"
+                                                :on-change="uploadFileChange"
+                                                :http-request="uploadFile"
+                                                :auto-upload="false"
+                                                :limit="1"
+                                                accept=".xls,.xlsx,.csv"
+                                                @before-upload="handleBeforeUpload"
+                                        >
+                                            <el-button slot="trigger" size="medium " type="primary" plain>选择文件</el-button>
+                                            <el-button style="margin-left: 10px;" size="medium " type="success" plain
+                                                       @click="handleUpload"
+                                                       :disabled="disabled">导入数据
+                                            </el-button>
+                                            <div style="font-size: 12px; line-height: 24px">{{uploadFileName}}</div>
+                                        </el-upload>
+                                    </div>
+                                </div>
+                                <div class="fl h10 info-left"></div>
+                            </div>
+                            <div class="ww100 clearfix pt10">
+                                <div class="gp-search-box">
+                                    <el-form :model="form">
+                                        <el-form-item>
+                                            <el-input v-model="form.name" autocomplete="off"></el-input>
+                                        </el-form-item>
+                                    </el-form>
+                                    <el-button type="warning"  @click="handleCheckDl">查找</el-button>
+                                </div>
+                            </div>
+
+                            <div class="font-list"  v-show="itemsSearchResult.length > 0">
+                                <ul>
+                                    <li :key="item+i" v-for="(item, i) in itemsSearchResult" @click="itemsSearchResultClisk(i, item)">
+                                        <span :class="item.isClick ? 'current' : ''"></span>
+                                        <strong :class="item.isClick ? 'current-font' : ''">{{item.name}}</strong>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class="font-list">
+                                <ul>
+                                    <li :key="item+i" v-for="(item, i) in resultNameFont" class="big-font"  @click="resultNameFontClick(i)">
+                                        <span :class="item.isClick ? 'current' : ''"></span>
+                                        <strong :class="item.isClick ? 'current-font' : ''">{{item.value}}</strong>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="font-list">
+                                <ul>
+                                    <li :key="item+i" v-for="(item, i) in resultConceptList" @click="resultConceptListClick(i)">
+                                        <span :class="item.isClick ? 'current' : ''"></span>
+                                        <strong :class="item.isClick ? 'current-font' : ''">{{item.value}}</strong>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="list-btn">
+                                <el-button :type="resultNameCurrentComputed.length > 0 || resultConceptCurrentComputed.length > 0 ? 'warning' : 'info'" @click="handleMateStock">匹&nbsp;&nbsp;配</el-button>
+                            </div>
+                            <div class="ww100 clearfix pt10">
+                                <div class="hh80 gp-search-list">
+                                    <pl-table ref="tblYSECSBB" :height="(fullHeight - 330)"
+                                              :data="endSelectStock"
+                                              class="tblClass"
+                                              :header-cell-style="{background:'#E4EBF4'}"
+                                              style="width: 100%;border:0 none"
+                                              use-virtual
+                                              :row-height="50"
+                                              v-loading="loading"
+                                    >
+                                        <!--                                        <pl-table-column type="selection" width="40"></pl-table-column>-->
+
+                                        <pl-table-column prop="name" label="股票名" width="80" show-overflow-tooltip>
+                                        </pl-table-column>
+                                        <pl-table-column prop="market" label="流通市值" width="80" show-overflow-tooltip>
+                                        </pl-table-column>
+                                        <pl-table-column label="概念" show-overflow-tooltip>
+                                            <template #default="scope">
+                                                <div v-for="(order, index) in scope.row.concept" :key="index" style="padding-right: 6px">
+                                                    {{ order }}
+                                                </div>
+                                            </template>
+                                        </pl-table-column>
+
+                                    </pl-table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </el-row>
+        </el-card>
+    </template>
+</div>
+
+<script type="text/javascript">
+    var app = new Vue({
+        el: '#app',
+        data: {
+            ht: 'calc(100vh + 67px)',
+            fullHeight: document.documentElement.clientHeight,
+            form: {
+                name: '',
+                txt: '',
+                txt02: '',
+                txt03: '',
+                txt04: ''
+            },
+            itemsSearchResult: [ //搜索时候多个股票
+                // { type: '', label: '标签一' },
+                // { type: 'success', label: '标签二' },
+                // { type: 'info', label: '标签三' },
+                // { type: 'danger', label: '标签四' },
+                // { type: 'warning', label: '标签五' }
+            ],
+            resultNameFont: [], // 搜索出来的个股每个字的数组
+            resultConceptList: [], //搜索出来的单个股概念列表
+            resultNameCurrent: [], //选中的字
+            resultConceptCurrent: [], //选中的概念
+            endSelectStock: [], // 最终选中的股票，并且按照市值从小到大排列
+            durationTime: 2000, //过期时间
+
+            // old
+            stationData: [],
+            expandFirst: [2], // 默认展开第一个节点
+
+            uploadFileUrl: "",
+            fileList: null,
+            disabled: true,
+            worksheetsData: [],
+
+            // []
+            listDataInit: [ //初始值，不会更改
+                // {
+                //     "name": "大众交通",
+                //     "market": "135亿",
+                //     "concept": [
+                //         "智能交通",
+                //         "智能交通2",
+                //         "网约车",
+                //         "参股券商",
+                //         "迪士尼",
+                //         "二手车",
+                //         "小额贷款",
+                //         "数据中心",
+                //         "物业管理"
+                //     ],
+                //     "clickResult": ""
+                // },
+                // {
+                //     "name": "大众22",
+                //     "market": "135亿",
+                //     "concept": [
+                //         "智能交通",
+                //         "智能交通2",
+                //         "智能交通3",
+                //         "智能交通4",
+                //         "智能交通5",
+                //         "智能交通6",
+                //         "智能交通7",
+                //         "网约车"
+                //     ],
+                //     "clickResult": ""
+                // },
+                // {
+                //     "name": "大众33",
+                //     "market": "135亿",
+                //     "concept": [
+                //         "智能交通"
+                //     ],
+                //     "clickResult": ""
+                // },
+                // {
+                //     "name": "亚视光电",
+                //     "market": "100亿",
+                //     "concept": [
+                //         "无人驾驶",
+                //         "网约车",
+                //         "巴黎奥运"
+                //     ],
+                //     "clickResult": ""
+                // }
+            ],
+            listDataYszzb: [ //初始值，可以改
+                // {
+                //     "name": "大众交通",
+                //     "market": "135亿",
+                //     "concept": [
+                //         "智能交通",
+                //         "网约车",
+                //         "智能交通2",
+                //         "参股券商",
+                //         "迪士尼",
+                //         "二手车",
+                //         "小额贷款",
+                //         "数据中心",
+                //         "物业管理"
+                //     ],
+                //     "clickResult": ""
+                // },
+                // {
+                //     "name": "大众22",
+                //     "market": "135亿",
+                //     "concept": [
+                //         "智能交通",
+                //         "智能交通2",
+                //         "智能交通3",
+                //         "智能交通4",
+                //         "智能交通5",
+                //         "智能交通6",
+                //         "智能交通7",
+                //         "网约车"
+                //     ],
+                //     "clickResult": ""
+                // },
+                // {
+                //     "name": "大众33",
+                //     "market": "135亿",
+                //     "concept": [
+                //         "智能交通"
+                //     ],
+                //     "clickResult": ""
+                // },
+                // {
+                //     "name": "亚视光电",
+                //     "market": "100亿",
+                //     "concept": [
+                //         "无人驾驶",
+                //         "网约车",
+                //         "巴黎奥运"
+                //     ],
+                //     "clickResult": ""
+                // }
+            ],
+
+
+            uploadFileName: "",
+            loading: false
+        },
+        mounted() {
+            this.get_bodyHeight();
+        },
+        computed: {
+            resultNameCurrentComputed: function (){
+                return this.resultNameFont.filter(a=>a.isClick === true) // 选中的标题字
+            },
+            resultConceptCurrentComputed: function (){
+                return this.resultConceptList.filter(a=>a.isClick === true) //选中的概念
+            }
+        },
+        created() {
+
+        },
+        methods: {
+            initDataEmpty(){
+                this.itemsSearchResul = []
+                this.resultNameFont = []
+                this.resultConceptList = []
+                this.resultNameFont = []
+                this.resultConceptList = []
+            },
+            resultNameFontClick(i){
+                this.resultNameFont[i].isClick = !this.resultNameFont[i].isClick
+            },
+            resultConceptListClick(i){
+                this.resultConceptList[i].isClick = !this.resultConceptList[i].isClick
+            },
+            itemsSearchResultClisk(i, item){
+                this.itemsSearchResult.forEach((item)=> item.isClick = false)
+                this.itemsSearchResult[i].isClick = !this.itemsSearchResult[i].isClick
+                this.pushNameConcept([item])
+            },
+            handleMateStock(){
+                const that = this
+
+                let filteredConcept = undefined
+                let filteredName = undefined
+                if(that.resultConceptCurrentComputed.length > 0){ // 如果选了概念
+                    const valuesToFind = that.resultConceptCurrentComputed.map(item => item.value);
+                    const initData = JSON.parse(JSON.stringify(that.listDataInit))
+                    filteredConcept = initData.filter(item => valuesToFind.every(value => item.concept.includes(value))); //过滤包括概念的数组
+
+                    if(that.resultNameCurrentComputed.length > 0) { // 如果选了名字
+                        const initData = JSON.parse(JSON.stringify(that.listDataInit))
+                        const valuesToFind = that.resultNameCurrentComputed.map(item => item.value);
+                        filteredName = filteredConcept.filter(item => item.name.indexOf(valuesToFind.join('')) > -1)
+                        this.endSelectStock = filteredName
+                    }else{
+                        this.endSelectStock = filteredConcept
+                    }
+
+                }else{ // 如果没有选概念
+                    if(that.resultNameCurrentComputed.length > 0) { // 如果选了名字
+                        const initData = JSON.parse(JSON.stringify(that.listDataInit))
+                        const valuesToFind = that.resultNameCurrentComputed.map(item => item.value);
+                        filteredName = initData.filter(item => item.name.indexOf(valuesToFind.join('')) > -1)
+
+                        this.endSelectStock = filteredName
+
+                    }else{
+
+                    }
+                }
+
+                if(this.endSelectStock.length > 1){
+                    this.endSelectStock = this.endSelectStock.sort((a, b) => a.number - b.number)
+                }
+
+                console.log('this.endSelectStock', this.endSelectStock)
+
+
+            },
+            pushNameConcept(filterData){
+                this.initDataEmpty()
+                if(filterData.length === 1){
+                    filterData[0].name.split('').forEach((item)=>{
+                        this.resultNameFont.push({
+                            isClick: false,
+                            value: item
+                        })
+                    })
+
+                    filterData[0].concept.forEach((item)=>{
+                        this.resultConceptList.push({
+                            isClick: false,
+                            value: item
+                        })
+                    })
+                }else if(filterData.length > 1){
+                    filterData.map((item, index)=>{
+                        this.itemsSearchResult.push(item)
+                    })
+                }else{
+                    this.$notify({
+                        title: '未查到找相应股票',
+                        message: '',
+                        type: 'error'
+                    });
+                }
+            },
+            handleCheckDl() {
+                const val = this.form.name
+                const that = this;
+                if(this.listDataInit.length < 1){
+                    this.$notify({
+                        title: '请先导入数据',
+                        message: '',
+                        duration: that.durationTime,
+                        type: 'success'
+                    });
+                    return
+                }
+                const filterData = this.listDataInit.filter(a => a.name.indexOf(val) > -1)
+                this.initDataEmpty()
+
+                console.log('filterData', filterData)
+
+                if(filterData.length < 2){
+                    this.itemsSearchResult = []
+                }
+
+                this.pushNameConcept(filterData)
+
+
+            },
+            //选择时文件发生变化调用该函数，获取文件并通过URL.createObjectURL(file)获取文件url回显
+            uploadFileChange(file, fileList) {
+                this.worksheetsData = [];
+                this.disabled = false;
+                this.fileList = file.raw;
+                this.uploadFileName = file.name;
+            },
+            //
+            handleBeforeUpload(file) {
+                if (file.length <= 0) {
+                    return false
+                } else if (!/\.(xls|xlsx|csv)$/.test(file.name.toLowerCase())) {
+                    this.$message({
+                        message: '上传格式不正确，请上传xls、xlsx或者csv格式',
+                        type: 'warning'
+                    })
+                    return false
+                } else {
+                    this.worksheetsData = [];
+                    this.disabled = false;
+                    this.fileList = file.raw;
+                    this.uploadFileName = file.name;
+                }
+            },
+
+            //确认上传的函数
+            handleUpload() {
+                //调用手动上传的方法
+                this.$refs.uploadFile.submit();
+            },
+            //定义上传方法
+            uploadFile() {
+                const fileReader = new FileReader();
+                var that = this;
+                fileReader.onload = function (evt) {
+                    const data = evt.target.result;
+                    // 读取整个文件数据
+                    const workbook = XLSX.read(data, {
+                        type: that.uploadFileName.endsWith(".xls") ? 'string' : "binary"
+                    });
+
+                    // 循环获取多个工作簿数据
+                    const sheetNames_arr = workbook.SheetNames;
+                    const worksheetsDataArr = [];
+                    // debugger
+                    for (let i = 0, len = sheetNames_arr.length; i < len; i++) {
+                        const worksheet = workbook.Sheets[sheetNames_arr[i]];
+                        const sheetData = XLSX.utils.sheet_to_json(worksheet);
+                        if (sheetData.length < 1) {
+                            that.$notify({
+                                title: '表格内容为空',
+                                message: '',
+                                type: 'error'
+                            });
+                            return;
+                        }
+                        let obj = {"sheetName": sheetNames_arr[i], "sheetData": sheetData};
+                        // 处理
+                        if (that.uploadFileName.endsWith(".xls")) {
+                            obj = {"sheetName": that.uploadFileName.replace(".xls", ""), "sheetData": sheetData};
+                        }
+                        worksheetsDataArr.push(obj);
+                    }
+                    that.handleData(worksheetsDataArr);
+                }
+                if (that.uploadFileName.endsWith(".xls")) {
+                    fileReader.readAsText(this.fileList);
+                } else {
+                    fileReader.readAsArrayBuffer(this.fileList);
+                }
+
+
+            },
+            // 构建数据
+            handleData(worksheetsData_arr) {
+                let isOk = false;
+                const that = this;
+                console.log(worksheetsData_arr)
+                let sheetDataReload = [] //正式数据
+
+                worksheetsData_arr[0].sheetData.map((v, i) => {
+                    sheetDataReload.push({
+                        'name': v['股票名'],
+                        'market': v['流通市值'],
+                        'concept': v['概念'].split('*'),
+                        'number': parseInt(v['流通市值'].split('亿')[0]) ,
+                        'clickResult': ''
+
+                    })
+                })
+                this.listDataYszzb = sheetDataReload
+                this.listDataInit = sheetDataReload
+
+                console.log('sheetDataReload')
+                console.log(sheetDataReload)
+                this.$notify({
+                    title: '导入成功',
+                    message: '',
+                    duration: that.durationTime,
+                    type: 'success'
+                });
+                this.$refs.uploadFile.clearFiles();
+
+
+
+                return // duan add
+
+
+
+            },
+
+            get_bodyHeight() {//动态获取浏览器高度
+                const that = this
+                window.onresize = () => {
+                    return (() => {
+                        window.fullHeight = document.documentElement.clientHeight
+                        that.fullHeight = window.fullHeight
+                    })()
+                }
+            }
+        },
+        watch: {
+            fullHeight(val) {//监控浏览器高度变化
+                if (!this.timer) {
+                    this.fullHeight = val
+                    this.timer = true
+                    let that = this
+                    setTimeout(function () {
+                        that.timer = false
+                    }, 400)
+                }
+            }
+        },
+
+    })
+</script>
+
+<style lang="less" scoped>
+    .gp-wrapper{
+        width: 40%;
+        margin: 0 auto
+    }
+    @media screen and (max-width: 800px) {
+        body .gp-wrapper{
+            width: 100%;
+        }
+    }
+    .font-list {
+        width: 100%;
+        overflow: visible;
+    }
+    .font-list ul {
+        margin: 0;
+        padding: 0 0 0 18px;
+    }
+    .el-table .cell.el-tooltip{
+        word-wrap: break-word !important;
+        white-space: normal !important;
+    }
+    .font-list li{
+        cursor: pointer;
+        border: #52abff solid 1px;
+        list-style: none;
+        display: inline-block;
+        line-height: 1;
+        padding:7px 8px;
+        margin-bottom: 12px;
+        margin-right: 10px;
+        border-radius: 3px;
+        position: relative;
+        font-size: 16px;
+    }
+    .font-list li.big-font{
+        font-size: 24px;
+    }
+    .font-list span{
+        position: absolute;
+        display: block;
+        width: 16px;
+        height: 26px;
+        right: -7px;
+        top: -7px;
+        background: none;
+    }
+    .font-list .current{
+        background: url(./assets/img/tick.png) right top no-repeat;
+        background-size: 100% auto;
+        color: #ff7712;
+    }
+    .font-list strong{
+        font-weight: 400;
+    }
+    .font-list .current-font{
+        color: #ff7712;
+    }
+    .list-btn {
+        padding-left: 18px;
+        width: 90%;
+        button{
+            width: 100%;
+        }
+    }
+    .tag-group{
+    .el-tag{
+        margin-right: 10px;
+        cursor: pointer;
+        opacity: .8;
+    }
+    .el-tag:active{
+        opacity: 1;
+    }
+    }
+
+    .gp-search-box{
+        padding-left: 18px;
+        width: 90%;
+        position: relative;
+    .el-button{
+        position: absolute;
+        top: 3px;
+        right: 4px;
+        padding: 9px 16px;
+    }
+    }
+    .gp-search-list{
+        margin-left: 18px;
+        width: 90%;
+    }
+
+
+    .bg-white {
+        background: #fff;
+    }
+
+    .container {
+        border: none;
+        border-radius: 4px;
+        background-color: #409eff;
+        height: 40px;
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 15px;
+        min-width: 80px;
+        *zoom: 1;
+    }
+
+    .upload_file {
+        font-size: 20px;
+        opacity: 0;
+        position: absolute;
+        filter: alpha(opacity=0);
+        width: 60px;
+    }
+
+
+    body {
+        background-color: #EAEFF7;
+    }
+
+    .el-card {
+        background-color: transparent;
+    }
+
+    .el-card__header {
+        padding: 10px 20px;
+    }
+
+    .el-card__body {
+        padding: 5px 5px 10px 5px;
+    }
+
+    .el-card.is-always-shadow,
+    .el-card.is-hover-shadow:focus,
+    .el-card.is-hover-shadow:hover {
+        -webkit-box-shadow: none;
+        box-shadow: none;
+    }
+
+    .el-table td,
+    .el-table th {
+        padding: 6px 0;
+    }
+
+    .el-table--border {
+        border-right: 1px;
+        border-bottom: 1px;
+    }
+
+    .el-table--border,
+    .el-table--group {
+        border: 1px solid #CAD7E3;
+        border-top: 0;
+        border-radius: 0 0 4px 4px;
+    }
+
+    .el-table--border td,
+    .el-table--border th,
+    .el-table__body-wrapper .el-table--border.is-scrolling-left ~ .el-table__fixed {
+        border-right: 1px solid #E8E8E8;
+    }
+
+    .el-table--border th.gutter:last-of-type {
+        background: #e4ebf4;
+    }
+
+    .el-table td,
+    .el-table th.is-leaf {
+        border-bottom: 1px solid #D8E2EB;
+    }
+
+    .tblbtn.el-button--small,
+    .tblbtn.el-button--small.is-round {
+        padding: 0px 15px;
+    }
+
+    .el-tabs--border-card > .el-tabs__content {
+        padding: 0;
+    }
+
+</style>
+</body>
+
+</html>
